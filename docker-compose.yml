@@ -1,0 +1,39 @@
+version: '3'
+
+services:
+
+    postgres:
+        build:
+            context: ./images/postgres
+        restart: always
+        environment:
+            - POSTGRES_USER=root
+            - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+            - ESP_UPDATE_SERVER_USER=${ESP_UPDATE_SERVER_USER}
+            - ESP_UPDATE_SERVER_PASSWORD=${ESP_UPDATE_SERVER_PASSWORD}
+            - ESP_UPDATE_SERVER_DATABASE=${ESP_UPDATE_SERVER_DATABASE}
+        volumes:
+            - ./data/postgres:/var/lib/postgresql/data
+
+    esp_update_server:
+        build:
+            context: .
+            dockerfile: images/esp_update_server/Dockerfile
+        restart: always
+        volumes:
+            - ./data/esp_update_server:/home/esp_update_server/data
+            - ./src:/home/esp_update_server/src
+        command: bash -c "../startup.sh && uwsgi --socket 0.0.0.0:5000 --protocol=uwsgi -w UpdateServer.wsgi --master" #--uid esp_update_server"
+        depends_on:
+            - postgres
+
+    nginx:
+        build:
+            context: ./images/nginx
+        restart: always
+        depends_on:
+            - esp_update_server
+        ports:
+            - "443:443"
+        volumes:
+            - ./data/nginx:/home/nginx/data

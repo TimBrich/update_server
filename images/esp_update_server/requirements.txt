@@ -1,0 +1,4 @@
+django
+uwsgi
+psycopg2
+Pillow
